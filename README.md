@@ -34,7 +34,6 @@
 - [Installation](#-installation)
 - [Quick Start](#-quick-start)
 - [Gradio Demo](#-gradio-demo)
-- [Team](#-team)
 - [Citation](#-citation)
 
 ---
