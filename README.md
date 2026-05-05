@@ -1,25 +1,15 @@
-<div align="center">
+# 🔍 VInFi-Check
 
-<h1>🔍 VInFi-Check</h1>
+**Interpretable and Fine-Grained Fact-Checking for Vietnamese LLM Summaries**
 
-<p><strong>Interpretable and Fine-Grained Fact-Checking for Vietnamese LLM Summaries</strong></p>
+[![Paper](https://img.shields.io/badge/Based%20on-InFi--Check%20arXiv%3A2601.06666-b31b1b?style=flat-square&logo=arxiv)](https://arxiv.org/abs/2601.06666)
+[![GitHub](https://img.shields.io/badge/GitHub-KrisEvK%2FVInfi--Check-181717?style=flat-square&logo=github)](https://github.com/KrisEvK/VInfi-Check)
+![Language](https://img.shields.io/badge/Language-Vietnamese-blue?style=flat-square)
+![Model](https://img.shields.io/badge/Model-Qwen2.5--7B%20%2B%20QLoRA-orange?style=flat-square)
+![Status](https://img.shields.io/badge/Status-In%20Progress-yellow?style=flat-square)
+![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
-<p>
-  <a href="https://arxiv.org/abs/2601.06666"><img src="https://img.shields.io/badge/Based%20on-InFi--Check%20arXiv%3A2601.06666-b31b1b?style=flat-square&logo=arxiv" alt="Paper"/></a>
-  <a href="https://github.com/KrisEvK/VInfi-Check"><img src="https://img.shields.io/badge/GitHub-VInFi--Check-181717?style=flat-square&logo=github" alt="GitHub"/></a>
-  <img src="https://img.shields.io/badge/Language-Vietnamese-blue?style=flat-square" alt="Language"/>
-  <img src="https://img.shields.io/badge/Model-Qwen2.5--7B%20%2B%20QLoRA-orange?style=flat-square" alt="Model"/>
-  <img src="https://img.shields.io/badge/Status-In%20Progress-yellow?style=flat-square" alt="Status"/>
-  <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License"/>
-</p>
-
-<p>
-  Vietnamese adaptation of <a href="https://github.com/Phosphor-Bai/InFi-Check">InFi-Check</a> —
-  fine-grained hallucination detection in LLM-generated summaries over Vietnamese news text,
-  with a 6-class error taxonomy, majority-vote evaluation, and a QLoRA-tuned Qwen2.5-7B fact-checker.
-</p>
-
-</div>
+Vietnamese adaptation of [InFi-Check](https://github.com/Phosphor-Bai/InFi-Check) — fine-grained hallucination detection in LLM-generated summaries over Vietnamese news text, with a 6-class error taxonomy, majority-vote evaluation, and a QLoRA-tuned Qwen2.5-7B fact-checker.
 
 ---
 
@@ -42,7 +32,7 @@
 
 **VInFi-Check** adapts the [InFi-Check](https://arxiv.org/abs/2601.06666) framework to Vietnamese, introducing:
 
-1. **A Vietnamese hallucination benchmark** — the first systematic evaluation of hallucination patterns across multiple LLMs (LLaMA-3.3-70B, Qwen2.5, VinaLlama, Gemini Flash) on Vietnamese news text.
+1. **A Vietnamese hallucination benchmark** — the first systematic evaluation of hallucination patterns across multiple LLMs on Vietnamese news text.
 2. **A fine-grained Vietnamese fact-checking model** — Qwen2.5-7B-Instruct fine-tuned with QLoRA, trained on a synthetically constructed dataset with 6 error types.
 3. **A full data pipeline** — from Vietnamese document collection → summary generation → multi-model majority-vote verification → structured error injection → SFT dataset preparation.
 
@@ -52,72 +42,66 @@
 
 ## ⚙️ Pipeline
 
-The pipeline consists of **7 stages**, each implemented as a resumable, batch-safe script:
-
 ```
-Stage 1 — Document Filtering
+Bước 1 — Thu thập tài liệu
          VnExpress · BBC News · DetNet Wikipedia (vi)
-         Filter: 300–1000 words
+         Lọc: 300–1000 từ
                     ↓
-Stage 2 — Summary Generation
-         Llama-3.3-70B via Groq API
-         Constraint: 100–200 words, all entities preserved
+Bước 2 — Sinh tóm tắt
+         deepseek-chat
+         Ràng buộc: 100–200 từ, giữ đủ thực thể quan trọng
                     ↓
-Stage 3 — Multi-Model Voting Evaluation
-         GPT-4o-mini (w/ revision) · Qwen2.5-72B · Gemini Flash
-         Majority vote → supported summary
+Bước 3 — Đánh giá & trích xuất câu tham chiếu
+         Majority voting: GPT-4o-mini · Qwen2.5-72B · Gemini Flash
+         → tóm tắt được xác nhận + câu nguồn
                     ↓
-Stage 4 — Reference Sentence Extraction
-         GPT-4o → maps each summary sentence → supporting doc sentence(s)
+Bước 4 — Tạo lỗi nhân tạo có cấu trúc
+         deepseek-chat → 6 loại lỗi × nhiều phương pháp
                     ↓
-Stage 5 — Structured Error Generation
-         GPT-4o → 6 error types × multiple methods
-         (Intrinsic: Predicate, Entity, Circumstance, Co-reference, Discourse Link
-          Extrinsic: Extrinsic Information)
+Bước 5 — Xây dựng dataset SFT
+         prepare_dataset_pipeline.ipynb
+         Đầu ra: train / valid / test JSONL
                     ↓
-Stage 6 — SFT Dataset Construction
-         prepare_dataset_base.py
-         Output: train / valid / test JSONL
-                    ↓
-Stage 7 — QLoRA Fine-tuning
+Bước 6 — Fine-tune QLoRA
          Qwen2.5-7B-Instruct · rank=16 · alpha=32
          Google Colab T4 · 3 epochs
+                    ↓
+Bước 7 — Demo Gradio
+         VInFiCheck_Gradio.ipynb · public link qua share=True
 ```
 
 ---
 
 ## 🗂 Error Taxonomy
 
-VInFi-Check detects **6 categories** of factual errors in summaries:
-
-| # | Error Type | Vietnamese | Description | Example |
-|---|-----------|------------|-------------|---------|
-| 1 | **Predicate Error** | Lỗi Vị Ngữ | Wrong verb or predicate changes the action/state | *"tăng"* → *"giảm"* |
-| 2 | **Entity Error** | Lỗi Thực Thể | Missing, swapped, or compressed named entities | Omitting *"Xiaomi"* from a list of brands |
-| 3 | **Circumstance Error** | Lỗi Hoàn Cảnh | Incorrect time, location, or number | *"2022"* → *"2020"*; *"Hà Nội"* → *"TP.HCM"* |
-| 4 | **Co-reference Error** | Lỗi Đồng Tham Chiếu | Wrong pronoun or merged subjects | *"ông ấy"* used for the wrong person |
-| 5 | **Discourse Link Error** | Lỗi Liên Kết Diễn Ngôn | Reversed causal / temporal relationship | Cause and effect swapped |
-| 6 | **Extrinsic Error** | Lỗi Ngoại Lai | Hallucinated information not in the source | Adding unreferenced statistics |
+| # | Error Type | Tiếng Việt | Mô tả | Ví dụ |
+|---|-----------|------------|-------|-------|
+| 1 | **Predicate Error** | Lỗi Vị Ngữ | Sai động từ/vị ngữ | *"tăng"* → *"giảm"* |
+| 2 | **Entity Error** | Lỗi Thực Thể | Thiếu, nhầm hoặc nén thực thể | Bỏ mất *"Xiaomi"* khỏi danh sách |
+| 3 | **Circumstance Error** | Lỗi Hoàn Cảnh | Sai thời gian, địa điểm, con số | *"2022"* → *"2020"* |
+| 4 | **Co-reference Error** | Lỗi Đồng Tham Chiếu | Nhầm đại từ hoặc gộp chủ ngữ sai | *"ông ấy"* dùng nhầm cho người khác |
+| 5 | **Discourse Link Error** | Lỗi Liên Kết Diễn Ngôn | Đảo ngược quan hệ nhân quả / thời gian | Nguyên nhân và kết quả bị hoán đổi |
+| 6 | **Extrinsic Error** | Lỗi Ngoại Lai | Thêm thông tin không có trong tài liệu | Thêm thống kê hallucinated |
 
 ---
 
 ## 📦 Dataset
 
-| Split | Documents | Positive samples | Negative samples |
-|-------|-----------|-----------------|-----------------|
+| Split | Tài liệu | Mẫu tích cực | Mẫu tiêu cực |
+|-------|----------|-------------|--------------|
 | Train | ~600 | ~600 | ~3 000 |
 | Valid | 100 | ~100 | ~500 |
 | Test  | 100 | ~100 | ~500 |
 
-**Sources:**
-- [BBC News Articles](https://huggingface.co/datasets/gopalkalpande/bbc-news-summary) (business, entertainment, politics, sport, tech)
-- [DetNet Wikipedia (vi)](https://github.com/yumoxu/detnet) — BUS, GOV, HEA, LAW, LIF, MIL, GEN categories
-- VnExpress articles (collected via scraping)
+**Nguồn dữ liệu:**
+- [BBC News Articles](https://huggingface.co/datasets/gopalkalpande/bbc-news-summary) — business, entertainment, politics, sport, tech
+- [DetNet Wikipedia (vi)](https://github.com/yumoxu/detnet) — BUS, GOV, HEA, LAW, LIF, MIL, GEN
+- VnExpress (thu thập thủ công)
 
-**Error generation methods per type:**
+**Phương pháp tạo lỗi:**
 
-| Error Type | Methods |
-|-----------|---------|
+| Loại lỗi | Phương pháp |
+|---------|-------------|
 | Predicate | Modifying Predictions, Swapping Relation Maskings |
 | Entity | Swapping Entities, Compressing Words |
 | Circumstance | Swapping Numbers, Swapping Locations/Times |
@@ -129,67 +113,60 @@ VInFi-Check detects **6 categories** of factual errors in summaries:
 
 ## 🤖 Models
 
-### Summary Generation
-| Model | Role | API |
-|-------|------|-----|
-| `llama-3.3-70b-versatile` | Primary summary generator | Groq |
-| `llama-3.1-8b-instant` | Fallback (token limit) | Groq |
+### Sinh tóm tắt (Pipeline)
+| Model | Vai trò | API |
+|-------|---------|-----|
+| `deepseek-chat` | Sinh tóm tắt tiếng Việt | DeepSeek |
 
-### Evaluation (Majority Vote)
-| Model | Role |
-|-------|------|
+### Đánh giá — Majority Vote
+| Model | Vai trò |
+|-------|---------|
 | `gpt-4o-mini` | Evaluator + revision |
 | `Qwen/Qwen2.5-72B-Instruct` | Evaluator |
 | `gemini-flash` | Evaluator |
 
-### Error Generation
-| Model | Role |
-|-------|------|
-| `gpt-4o-2024-11-20` | Structured error injection |
+### Tạo lỗi nhân tạo
+| Model | Vai trò |
+|-------|---------|
+| `deepseek-chat` | Structured error injection (6 loại) |
 
-### Fact-Checking (Fine-tuned)
-| Model | Config |
-|-------|--------|
-| `Qwen2.5-7B-Instruct` | Base model |
-| QLoRA | rank=16, alpha=32, dropout=0.05 |
+### Fact-Checking — Fine-tuned
+| Thành phần | Chi tiết |
+|-----------|---------|
+| Base model | `Qwen2.5-7B-Instruct` |
+| Adapter | `sunflowerbiii/infi-check-qwen25-7b-qlora-c` |
+| Method | QLoRA — rank=16, alpha=32, dropout=0.05 |
 | Training | Google Colab T4, 3 epochs, batch=4 |
+
+### Demo Gradio
+| Model | Vai trò | API |
+|-------|---------|-----|
+| `llama-3.3-70b-versatile` | Sinh tóm tắt trong demo | Groq |
+| `gpt-4o-mini` | Fact-checking qua API | OpenAI |
 
 ---
 
 ## 📁 Repository Structure
 
 ```
-VInFi-Check/
+VInfi-Check/
 │
-├── InFi-Check construct/              # Data pipeline scripts
-│   ├── dataset_bbc.py                 # BBC News data loader & filter
-│   ├── dataset_detnet_wiki.py         # DetNet Wikipedia data loader
-│   ├── summary_gen.py                 # Stage 2: Summary generation (Groq/GPT)
-│   ├── eval_and_reference_gen.py      # Stage 3–4: Evaluation + reference extraction
-│   ├── structured_dataset_gen.py      # Stage 5: Error injection (6 types)
+├── Phosphor-Bai-InFi-Check/                  # Codebase chính (based on InFi-Check)
 │   │
-│   ├── summary_gen_prompt/            # Error injection prompts
-│   │   ├── structured_intrinsic/
-│   │   │   ├── semantic frame/        # Predicate, Entity, Circumstance
-│   │   │   └── discourse/             # Co-reference, Discourse Link
-│   │   └── structured_extrinsic/      # Extrinsic error prompts
+│   ├── InFi-Check construct/                 # Scripts xây dựng dữ liệu
+│   │   ├── summary_eval_prompt/              # Prompt đánh giá (find_support, critics)
+│   │   ├── summary_gen_prompt/               # Prompt tạo lỗi nhân tạo
+│   │   │   ├── structured_intrinsic/
+│   │   │   │   ├── semantic frame/           # Predicate, Entity, Circumstance
+│   │   │   │   └── discourse/                # Co-reference, Discourse Link
+│   │   │   └── structured_extrinsic/         # Extrinsic error prompts
+│   │   ├── eval_and_reference_gen.py         # Bước 3: Đánh giá + trích xuất tham chiếu
+│   │   ├── structured_dataset_gen.py         # Bước 4: Tạo lỗi nhân tạo (6 loại)
+│   │   └── summary_gen.py                    # Bước 2: Sinh tóm tắt
 │   │
-│   └── summary_eval_prompt/           # Evaluation prompts (find_support, critics)
-│
-├── training_dataset_construct/        # SFT dataset construction
-│   ├── prepare_dataset_base.py        # Stage 6: Build train/valid/test JSONL
-│   └── prompt/                        # SFT prompt templates & few-shot examples
-│       ├── sft_prompt.txt
-│       ├── claude_prompt_unified.txt
-│       └── few_shot_unified.jsonl
-│
-├── notebooks/                         # Google Colab notebooks
-│   ├── 01_summary_gen.ipynb
-│   ├── 02_eval_and_reference.ipynb
-│   ├── 03_structured_dataset.ipynb
-│   ├── 04_prepare_dataset.ipynb
-│   ├── 05_finetune_qwen.ipynb
-│   └── VInFiCheck_Gradio.ipynb        # Interactive demo
+│   └── training_dataset_construct/           # Xây dựng dataset SFT
+│       ├── prompt/                           # SFT prompt templates & few-shot examples
+│       └── prepare_dataset_pipeline.ipynb    # Bước 5: Xuất train/valid/test JSONL
 │
 └── README.md
 ```
@@ -201,7 +178,6 @@ VInFi-Check/
 ```bash
 git clone https://github.com/KrisEvK/VInfi-Check.git
 cd VInfi-Check
-
 pip install -r requirements.txt
 ```
 
@@ -213,98 +189,85 @@ pip install openai groq underthesea transformers peft \
             bitsandbytes accelerate tqdm
 ```
 
-**API keys** (add to Colab Secrets or `.env`):
+**API keys** (thêm vào Colab Secrets hoặc `.env`):
 
 ```
 GROQ_API_KEY=...
 OPENAI_API_KEY=...
+DEEPSEEK_API_KEY=...
 ```
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Prepare documents
+### 1. Sinh tóm tắt
 
 ```bash
-# BBC News
-python "InFi-Check construct/dataset_bbc.py"
-
-# Wikipedia (DetNet)
-python "InFi-Check construct/dataset_detnet_wiki.py"
+python "Phosphor-Bai-InFi-Check/InFi-Check construct/summary_gen.py"
 ```
 
-### 2. Generate summaries
+### 2. Đánh giá & trích xuất câu tham chiếu
 
 ```bash
-python "InFi-Check construct/summary_gen.py"
+python "Phosphor-Bai-InFi-Check/InFi-Check construct/eval_and_reference_gen.py"
 ```
 
-### 3. Evaluate & extract references
+### 3. Tạo dataset lỗi nhân tạo
 
 ```bash
-python "InFi-Check construct/eval_and_reference_gen.py"
+python "Phosphor-Bai-InFi-Check/InFi-Check construct/structured_dataset_gen.py"
 ```
 
-### 4. Generate error dataset
+### 4. Xây dựng dataset SFT
 
-```bash
-python "InFi-Check construct/structured_dataset_gen.py"
+Chạy `Phosphor-Bai-InFi-Check/training_dataset_construct/prepare_dataset_pipeline.ipynb` trên Google Colab.
+
+```
+Output:
+  sft_dataset/jsonl/summary_sft_train_pos1neg5_with_ref.jsonl
+  sft_dataset/jsonl/summary_sft_valid_with_ref.jsonl
+  sft_dataset/jsonl/summary_sft_test_with_ref.jsonl
 ```
 
-### 5. Build SFT dataset
+### 5. Fine-tune
 
-```bash
-python training_dataset_construct/prepare_dataset_base.py
-# Output: sft_dataset/jsonl/summary_sft_train_pos1neg5_with_ref.jsonl
-#                           summary_sft_valid_with_ref.jsonl
-#                           summary_sft_test_with_ref.jsonl
-```
-
-### 6. Fine-tune
-
-Run `notebooks/05_finetune_qwen.ipynb` on Google Colab (T4 GPU).
+Chạy notebook fine-tune trên Google Colab (T4 GPU) với adapter `sunflowerbiii/infi-check-qwen25-7b-qlora-c`.
 
 ---
 
 ## 🎮 Gradio Demo
 
-Launch the interactive fact-checking demo:
-
 ```bash
-# In Google Colab — run VInFiCheck_Gradio.ipynb
-# Or locally:
-python app.py
+# Trên Google Colab — chạy VInFiCheck_Gradio.ipynb
 ```
 
-The demo supports:
-- **✦ Sinh tóm tắt** — auto-generate a summary from source text (Llama-3.3-70B via Groq)
-- **⬡ Kiểm chứng** — sentence-level fact-checking with error type classification
-- **◈ So sánh mô hình** — side-by-side comparison: VInFi-Checker vs GPT-4o-mini vs Llama-3.3-70B
+Demo hỗ trợ:
+- **✦ Sinh tóm tắt** — tự động sinh tóm tắt từ văn bản gốc (Llama-3.3-70B via Groq)
+- **⬡ Kiểm chứng** — kiểm tra từng câu với phân loại 6 loại lỗi
+- **◈ So sánh mô hình** — so sánh song song: VInFi-Checker · GPT-4o-mini · Llama-3.3-70B
 
 ---
 
 ## 📄 Citation
 
-If you use VInFi-Check in your research, please cite the original InFi-Check paper:
-
 ```bibtex
 @article{bai2025inficheck,
-  title     = {InFi-Check: Interpretable and Fine-Grained Fact-Checking of LLMs},
-  author    = {Bai, et al.},
-  journal   = {arXiv preprint arXiv:2601.06666},
-  year      = {2025},
-  url       = {https://arxiv.org/abs/2601.06666}
+  title   = {InFi-Check: Interpretable and Fine-Grained Fact-Checking of LLMs},
+  author  = {Bai, et al.},
+  journal = {arXiv preprint arXiv:2601.06666},
+  year    = {2025},
+  url     = {https://arxiv.org/abs/2601.06666}
 }
 ```
 
 ```bibtex
 @misc{vinficheck2025,
-  title     = {VInFi-Check: Interpretable and Fine-Grained Fact-Checking for Vietnamese LLM Summaries},
-  author    = {KrisEvK and contributors},
-  year      = {2025},
-  url       = {https://github.com/KrisEvK/VInfi-Check},
-  note      = {University Scientific Research Competition (NCKH)}
+  title  = {VInFi-Check: Interpretable and Fine-Grained Fact-Checking for Vietnamese LLM Summaries},
+  author = {KrisEvK and contributors},
+  year   = {2025},
+  url    = {https://github.com/KrisEvK/VInfi-Check},
+  note   = {University Scientific Research Competition (NCKH)}
 }
 ```
 
@@ -320,6 +283,4 @@ If you use VInFi-Check in your research, please cite the original InFi-Check pap
 
 ---
 
-<div align="center">
-  <sub>Made with ❤️ for Vietnamese NLP · NCKH 2024–2025</sub>
-</div>
+*Made with ❤️ for Vietnamese NLP · NCKH 2024–2025*
