@@ -151,22 +151,24 @@ Bước 7 — Demo Gradio
 ```
 VInfi-Check/
 │
-├── Phosphor-Bai-InFi-Check/                  # Codebase chính (based on InFi-Check)
-│   │
-│   ├── InFi-Check construct/                 # Scripts xây dựng dữ liệu
-│   │   ├── summary_eval_prompt/              # Prompt đánh giá (find_support, critics)
+├── Phosphor-Bai-InFi-Check/
+│   ├── InFi-Check construct/
+│   │   ├── summary_eval_prompt/              # Prompt đánh giá
 │   │   ├── summary_gen_prompt/               # Prompt tạo lỗi nhân tạo
 │   │   │   ├── structured_intrinsic/
 │   │   │   │   ├── semantic frame/           # Predicate, Entity, Circumstance
 │   │   │   │   └── discourse/                # Co-reference, Discourse Link
-│   │   │   └── structured_extrinsic/         # Extrinsic error prompts
+│   │   │   └── structured_extrinsic/
 │   │   ├── eval_and_reference_gen.py         # Bước 3: Đánh giá + trích xuất tham chiếu
+│   │   ├── finetune.py                       # Bước 6: Fine-tune QLoRA
 │   │   ├── structured_dataset_gen.py         # Bước 4: Tạo lỗi nhân tạo (6 loại)
 │   │   └── summary_gen.py                    # Bước 2: Sinh tóm tắt
 │   │
-│   └── training_dataset_construct/           # Xây dựng dataset SFT
-│       ├── prompt/                           # SFT prompt templates & few-shot examples
-│       └── prepare_dataset_pipeline.ipynb    # Bước 5: Xuất train/valid/test JSONL
+│   ├── training_dataset_construct/
+│   │   ├── prompt/                           # SFT prompt templates & few-shot examples
+│   │   └── prepare_dataset_pipeline.ipynb    # Bước 5: Xuất train/valid/test JSONL
+│   │
+│   └── VInFiCheck_Gradio.ipynb              # Demo Gradio
 │
 └── README.md
 ```
@@ -232,9 +234,9 @@ Output:
 
 ### 5. Fine-tune
 
-Chạy notebook fine-tune trên Google Colab (T4 GPU) với adapter `sunflowerbiii/infi-check-qwen25-7b-qlora-c`.
-
----
+```bash
+python "Phosphor-Bai-InFi-Check/InFi-Check construct/finetune.py"
+```
 
 ## 🎮 Gradio Demo
 
